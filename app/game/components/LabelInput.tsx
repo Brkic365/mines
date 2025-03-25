@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react'
 import styles from "@/styles/components/LabelInput.module.scss"
+import { useGameStore } from '../hooks/useGameStore'
 
 function LabelInput({inputable, label, value, onChange = () => {}}: {
   inputable: boolean,
@@ -9,7 +10,9 @@ function LabelInput({inputable, label, value, onChange = () => {}}: {
   value: number
   onChange?: (value: string) => void
 }) {
-  const [inputValue, setInputValue] = useState(value.toString());
+  const status = useGameStore((s) => s.status);
+
+  const [inputValue, setInputValue] = useState(value.toFixed(2).toString());
 
   const handleBlur = () => {
     const num = parseFloat(inputValue);
@@ -23,6 +26,8 @@ function LabelInput({inputable, label, value, onChange = () => {}}: {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setInputValue(e.target.value);
   };
+
+  console.log(status);
   
   return (
     <div className={styles.labelInput}>
@@ -35,6 +40,7 @@ function LabelInput({inputable, label, value, onChange = () => {}}: {
         value={inputValue}
         onChange={handleChange}
         onBlur={handleBlur}
+        disabled={status === "IN_PROGRESS"}
       />
     : 
     <div>

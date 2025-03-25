@@ -72,7 +72,7 @@ export const useGameStore = create<GameStore>()(
       sounds?.playClick?.();
 
       if (clickedTile.hasMine) {
-        // Reveal all mines
+        // Reveal all tiles
         const allRevealed = updatedBoard.map((r) =>
           r.map((t) => ({ ...t, revealed: true }))
         );
@@ -97,18 +97,21 @@ export const useGameStore = create<GameStore>()(
     },
 
     cashout: (playWin) => {
-      const { status, revealedCount, betAmount } = get();
+      const { status, revealedCount, betAmount, board } = get();
       if (status !== "IN_PROGRESS") return;
 
       const multiplier = 1 + 0.2 * revealedCount;
 
       const payout = +(betAmount * multiplier).toFixed(2);
 
+      const allRevealed = board.map((r) => r.map(t => {return {...t, revealed: true}}));
+
       playWin?.();
 
       set({
         status: "WON",
-        finalPayout: payout
+        finalPayout: payout,
+        board: allRevealed
       })
     },
 

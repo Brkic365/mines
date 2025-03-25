@@ -1,0 +1,39 @@
+.winModal {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+  
+    padding: 1.5rem 2.5rem;
+  
+    background-color: rgba(170, 255, 0, 0.15); // cleaner hex+alpha
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  
+    border: 1px solid #aaff00;
+    border-radius: 12px;
+  
+    transition: all 0.3s ease;
+  
+    width: max-content;
+    position: absolute;
+    z-index: 50;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%) !important;
+  
+    h1 {
+      color: white;
+      font-weight: 700;
+      font-size: 2.2rem;
+      margin: 0;
+    }
+  
+    p {
+      color: white;
+      font-weight: 500;
+      font-size: 1rem;
+      margin: 0;
+    }
+  }
+  

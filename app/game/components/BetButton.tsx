@@ -35,12 +35,12 @@ function BetButton() {
       // If game is in progress, button click activates cashout
       if (status === "IN_PROGRESS") {
         const newBalance = await cashout(playWin);
-        updateBalance(newBalance);
+        updateBalance(newBalance || 0);
       // Else it activates start of the game
       } else {
         if (betAmount <= balance) {
           const newBalance = await startGame();
-          updateBalance(newBalance);
+          updateBalance(newBalance || 0);
         }
       }
     } catch (err) {

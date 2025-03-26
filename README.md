@@ -29,31 +29,39 @@ A simple but secure Mines-style gambling game built with **Next.js**, **Zustand*
 
 ## 🚀 Getting Started
 
-npm install
-npm dev
+- **npm install**
+- **npm dev**
+
+---
 
 ## ENV Local File
 
-UPSTASH_REDIS_REST_URL=your-url
-UPSTASH_REDIS_REST_TOKEN=your-token
+- **UPSTASH_REDIS_REST_URL**=your-url
+- **UPSTASH_REDIS_REST_TOKEN**=your-token
+
+---
 
 ## 🔐 Provably Fair Logic
 
-Mine generation: sha256(serverSeed + clientSeed + nonce)
+- **Mine generation:** sha256(serverSeed + clientSeed + nonce)
+
+---
 
 ## 🧪 API Routes
 
-POST /api/game/start-game → Starts game, returns gameId & seed hash
+- **POST /api/game/start-game** → Starts game, returns gameId & seed hash
 
-POST /api/game/reveal-tile → Validates tile (mine or not)
+- **POST /api/game/reveal-tile** → Validates tile (mine or not)
 
-POST /api/game/cashout → Reveals board, returns payout + new balance
+- **POST /api/game/cashout** → Reveals board, returns payout + new balance
+
+---
 
 ## 📁 Project Structure
 
-/app/api         ← Game API routes
-/app/game        ← Game UI components
-/app/game/hooks  ← Zustand Game Store, payout calculator, sound effect hook
-/app/game/utils  ← Board and mine generators
-/app/hooks       ← Wallet Store
-/lib             ← Redis store, wallet API logic
+- **/app/api**         ← Game API routes
+- **/app/game**        ← Game UI components
+- **/app/game/hooks**  ← Zustand Game Store, payout calculator, sound effect hook
+- **/app/game/utils**  ← Board and mine generators
+- **/app/hooks**       ← Wallet Store
+- **/lib**             ← Redis store, wallet API logic

@@ -1,36 +1,59 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 💣 Mines – Provably Fair Gambling Game
 
-## Getting Started
+A simple but secure Mines-style gambling game built with **Next.js**, **Zustand**, and **Upstash Redis**. Avoid the mines, reveal gems, and cash out before you explode!
 
-First, run the development server:
+---
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## ⚙️ Features
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- 🎲 **Provably fair**: server + client seed with SHA-256
+- 🔐 **Secure backend validation** (no client-side mine logic)
+- 💼 **Wallet integration**: balance, bet, cashout
+- 💣 **Minesweeper gameplay** with increasing multiplier
+- ⚡ **Fast UX**: framer-motion animations + sound effects
+- ☁️ **State stored in Redis** for server-side trust
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 📦 Stack
 
-## Learn More
+- **Next.js** – App and API routes
+- **Zustand** – Game state and wallet store
+- **Redis (Upstash)** – Store server seeds + mine positions
+- **Framer Motion** – Animations
+- **use-sound** – Sound effects
+- **seedrandom** – Deterministic random mines
+- **SHA-256** – Provable fairness
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 🚀 Getting Started
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+npm install
+npm dev
 
-## Deploy on Vercel
+## ENV Local File
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+UPSTASH_REDIS_REST_URL=your-url
+UPSTASH_REDIS_REST_TOKEN=your-token
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 🔐 Provably Fair Logic
+
+Mine generation: sha256(serverSeed + clientSeed + nonce)
+
+## 🧪 API Routes
+
+POST /api/game/start-game → Starts game, returns gameId & seed hash
+
+POST /api/game/reveal-tile → Validates tile (mine or not)
+
+POST /api/game/cashout → Reveals board, returns payout + new balance
+
+## 📁 Project Structure
+
+/app/api         ← Game API routes
+/app/game        ← Game UI components
+/app/game/hooks  ← Zustand Game Store, payout calculator, sound effect hook
+/app/game/utils  ← Board and mine generators
+/app/hooks       ← Wallet Store
+/lib             ← Redis store, wallet API logic

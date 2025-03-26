@@ -183,7 +183,6 @@ export const useGameStore = create<GameStore>()(
         });
 
         if (won) {
-          sounds?.playWin?.();
           return "WON";
         }
 

@@ -1,7 +1,11 @@
-export type Tile = {
+export interface Tile {
     id: string;
-    hasMine: boolean;
+    position: {
+      row: number;
+      col: number;
+    };
     revealed: boolean;
-    opened: boolean;
-    position: { row: number; col: number }
-}
+    clicked?: boolean; // true if user clicked it
+    isMine?: boolean; // true if this tile had a mine (after loss or cashout)
+  }
+  

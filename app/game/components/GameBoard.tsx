@@ -16,6 +16,8 @@ export default function GameBoard() {
   const startGame = useGameStore((s) => s.startGame);
   const status = useGameStore((s) => s.status);
 
+  if (!board.length || !board[0]) return null;
+
   return (
       <div className={styles.gameBoard} style={{ gridTemplateColumns: `repeat(${board[0].length}, 1fr)` }}>
         <WinModal />

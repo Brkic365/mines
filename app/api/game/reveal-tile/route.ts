@@ -1,6 +1,6 @@
 // app/api/reveal-tile/route.ts
 import { NextResponse } from 'next/server';
-import { gameStore } from '../start-game/route'; // ✅ shared in-memory store
+import { gameStore } from '@/lib/gameStore';
 
 interface RevealTileBody {
   gameId: string;

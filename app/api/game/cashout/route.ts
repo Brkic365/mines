@@ -1,6 +1,6 @@
 // app/api/cashout/route.ts
 import { NextResponse } from 'next/server';
-import { gameStore } from '../start-game/route';
+import { gameStore } from '@/lib/gameStore';
 
 interface CashoutBody {
   gameId: string;

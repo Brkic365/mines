@@ -4,6 +4,8 @@ import { sha256 } from '@/app/game/utils/sha256';
 import { generateMinesFromSeed } from '@/app/game/utils/generateMinesFromSeed';
 import { v4 as uuidv4 } from 'uuid';
 
+import { gameStore } from '@/lib/gameStore';
+
 interface StartGameBody {
   clientSeed: string;
   rows: number;
@@ -11,16 +13,6 @@ interface StartGameBody {
   minesCount: number;
   nonce: number;
 }
-
-// TEMPORARY IN-MEMORY STORE
-const games: Record<string, {
-  serverSeed: string;
-  clientSeed: string;
-  finalSeed: string;
-  serverSeedHash: string;
-  mineIndices: number[];
-  config: { rows: number; cols: number; minesCount: number; nonce: number };
-}> = {};
 
 export async function POST(req: Request) {
   const body = (await req.json()) as StartGameBody;
@@ -37,7 +29,7 @@ export async function POST(req: Request) {
   const mineIndices = generateMinesFromSeed(rows, cols, minesCount, finalSeed);
   const gameId = uuidv4();
 
-  games[gameId] = {
+  gameStore[gameId] = {
     serverSeed,
     clientSeed,
     finalSeed,
@@ -56,5 +48,3 @@ export async function POST(req: Request) {
     minesCount,
   });
 }
-
-export const gameStore = games;

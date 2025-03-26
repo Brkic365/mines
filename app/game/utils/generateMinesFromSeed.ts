@@ -1,5 +1,13 @@
 import seedrandom from "seedrandom";
 
+/**
+ * Generates unique mine positions from a deterministic seed.
+ * @param rows Number of rows on the board
+ * @param cols Number of columns on the board
+ * @param minesCount Total number of mines to place
+ * @param seed Deterministic seed string (server + client + nonce)
+ * @returns Array of unique mine indices (flattened from 2D to 1D)
+ */
 export function generateMinesFromSeed(
   rows: number,
   cols: number,
@@ -7,6 +15,11 @@ export function generateMinesFromSeed(
   seed: string
 ): number[] {
   const totalTiles = rows * cols;
+
+  if (minesCount > totalTiles) {
+    throw new Error("Mine count cannot exceed total number of tiles");
+  }
+
   const rng = seedrandom(seed);
   const mineIndices = new Set<number>();
 
@@ -15,5 +28,5 @@ export function generateMinesFromSeed(
     mineIndices.add(index);
   }
 
-  return [...mineIndices];
+  return Array.from(mineIndices);
 }

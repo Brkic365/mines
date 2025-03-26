@@ -1,16 +1,13 @@
 import { useMemo } from "react";
 
 export function usePayoutCalculator(openedTiles: number, betAmount?: number) {
-  const multiplier = useMemo(() => {
-    return 1 + 0.2 * openedTiles;
-  }, [openedTiles]);
+  return useMemo(() => {
+    const multiplier = 1 + 0.2 * openedTiles;
+    const payout =
+      typeof betAmount === "number"
+        ? +(betAmount * multiplier).toFixed(2)
+        : undefined;
 
-  const payout = useMemo(() => {
-    if (typeof betAmount === "number") {
-      return +(betAmount * multiplier).toFixed(2); // round to 2 decimals
-    }
-    return null;
-  }, [multiplier, betAmount]);
-
-  return { multiplier, payout };
+    return { multiplier, payout };
+  }, [openedTiles, betAmount]);
 }

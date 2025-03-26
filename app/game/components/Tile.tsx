@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useMemo, useCallback, useState } from "react";
 import { motion } from "framer-motion";
 import styles from "@/styles/components/Tile.module.scss";
 import { useGameStore } from "../hooks/useGameStore";
 import { useSoundEffects } from "../hooks/useSoundEffects";
+import { useWalletStore } from "@/app/hooks/useWalletStore";
 
 interface Props {
   tileId: string;
@@ -12,54 +13,54 @@ interface Props {
   col: number;
 }
 
-function TileElement({ tileId, row, col }: Props) {
+function TileElement({ row, col }: Props) {
   const tile = useGameStore((s) => s.board[row]?.[col]);
   const status = useGameStore((s) => s.status);
   const revealTile = useGameStore((s) => s.revealTile);
+  const cashout = useGameStore((s) => s.cashout);
+
+  const updateBalance = useWalletStore((s) => s.updateBalance);
+
   const sounds = useSoundEffects();
+
+  const isIdle = status === "IDLE";
+  const [isRevealing, setIsRevealing] = useState(false);
 
   if (!tile) return null;
 
-  const isRevealed = tile.revealed;
-  const isIdle = status === "IDLE";
+  const { revealed, isMine, clicked } = tile;
+  const isGem = revealed && !isMine;
+  const isBomb = revealed && isMine;
 
-  const isGem = tile.revealed && !tile.isMine;
-  const isBomb = tile.revealed && tile.isMine;
-  const isClicked = tile.clicked;
-  
   const tileStyle = useMemo(() => {
-    if (isGem) {
-      return {
-        backgroundColor: "#061C04",
-        borderColor: "#AAFF00",
-        opacity: isClicked ? 1 : 0.4,
-      };
-    } else if (isBomb) {
-      return {
-        backgroundColor: "#380707",
-        borderColor: "#FF4444",
-        opacity: isClicked ? 1 : 0.4,
-      };
-    } else {
-      return {
-        backgroundColor: "#242545",
-        borderColor: "#373E65",
-        opacity: isClicked ? 1 : 0.4,
-      };
-    }
-  }, [isGem, isBomb, isClicked]);
+    const base = {
+      opacity: clicked ? 1 : 0.4,
+    };
 
-  const handleClick = () => {
-    if (!isRevealed && !isIdle) {
-      revealTile(row, col, sounds);
+    if (isGem) return { ...base, backgroundColor: "#061C04", borderColor: "#AAFF00" };
+    if (isBomb) return { ...base, backgroundColor: "#380707", borderColor: "#FF4444" };
+    return { ...base, backgroundColor: "#242545", borderColor: "#373E65" };
+  }, [isGem, isBomb, clicked]);
+
+  const handleClick = useCallback(async () => {
+    if (revealed || isIdle || isRevealing) return;
+
+    setIsRevealing(true);
+
+    const result = await revealTile(row, col, sounds);
+    if (result === "WON") {
+      const newBalance = await cashout(sounds.playWin);
+      updateBalance(newBalance || 0);
     }
-  };
+
+    setIsRevealing(false);
+  }, [revealed, isIdle, isRevealing, row, col, revealTile, sounds, updateBalance]);
 
   return (
     <motion.div
       className={`
         ${styles.tile}
-        ${isRevealed ? styles.revealed : ""}
+        ${revealed ? styles.revealed : ""}
         ${status === "LOST" || status === "WON" ? styles.notHoverable : styles.hoverable}
       `}
       initial={false}
@@ -77,7 +78,6 @@ function TileElement({ tileId, row, col }: Props) {
           transition={{ type: "tween", stiffness: 300, damping: 20 }}
         />
       )}
-
       {isBomb && (
         <motion.img
           src="/images/bomb.png"

@@ -1,0 +1,38 @@
+.page {
+    background: #12101C;
+    height: 100vh;
+    width: 100vw;
+
+    padding: 10px;
+
+    button {
+        background-color: #1D1C34;
+        border: 1px solid #373E65;
+        outline: none;
+        color: white;
+        border-radius: 6px;
+
+        padding: 12px 10px 12px 14px;
+
+        width: 100%;
+
+        display: flex;
+        align-items: center;
+        place-content: space-between;
+        
+        cursor: pointer;
+
+        p {
+            font-size: 16px;
+        }
+
+        svg {
+            width: 24px;
+            height: 24px;
+        }
+
+        &:focus {
+            border: 1px solid white;
+        }
+    }
+}

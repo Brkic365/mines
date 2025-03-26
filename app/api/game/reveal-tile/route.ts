@@ -1,6 +1,7 @@
 // app/api/reveal-tile/route.ts
 import { NextResponse } from 'next/server';
-import { gameStore } from '@/lib/gameStore';
+import { getGame } from '@/lib/gameStore';
+import type { Game } from '@/app/game/types/Game';
 
 interface RevealTileBody {
   gameId: string;
@@ -9,26 +10,31 @@ interface RevealTileBody {
 }
 
 export async function POST(req: Request) {
-  const body = (await req.json()) as RevealTileBody;
-  const { gameId, row, col } = body;
+  try {
+    const body = (await req.json()) as RevealTileBody;
+    const { gameId, row, col } = body;
 
-  if (!gameId || row == null || col == null) {
-    return NextResponse.json({ error: 'Invalid input' }, { status: 400 });
+    // Validate input
+    if (!gameId || row == null || col == null || row < 0 || col < 0) {
+      return NextResponse.json({ error: 'Invalid input' }, { status: 400 });
+    }
+
+    // Get game from server (Redis)
+    const game: Game | null = await getGame(gameId);
+    if (!game || !game.mineIndices || !game.config) {
+      return NextResponse.json({ error: 'Game not found or malformed' }, { status: 404 });
+    }
+
+    const { mineIndices, config } = game;
+    const { cols } = config;
+
+    // Check if the tile is a mine
+    const tileIndex = row * cols + col;
+    const isMine = mineIndices.includes(tileIndex);
+
+    return NextResponse.json({ isMine, tileIndex });
+  } catch (err: any) {
+    console.error("Reveal tile error:", err);
+    return NextResponse.json({ error: err.message || "Unknown error" }, { status: 500 });
   }
-
-  const game = gameStore[gameId];
-  if (!game) {
-    return NextResponse.json({ error: 'Game not found' }, { status: 404 });
-  }
-
-  const { mineIndices, config } = game;
-  const { rows, cols, minesCount } = config;
-
-  const tileIndex = row * cols + col;
-  const isMine = mineIndices.includes(tileIndex);
-
-  return NextResponse.json({
-    isMine,
-    tileIndex,
-  });
 }

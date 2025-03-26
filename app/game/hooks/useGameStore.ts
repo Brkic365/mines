@@ -2,6 +2,7 @@
 import { create } from "zustand";
 import { subscribeWithSelector } from "zustand/middleware";
 import { Tile } from "../types/Board";
+import { createEmptyBoard } from "../utils/createEmptyBoard";
 
 export type GameStatus = "IDLE" | "IN_PROGRESS" | "LOST" | "WON";
 
@@ -26,12 +27,15 @@ interface GameStore {
   nonce: number;
   gameId: string;
 
+  isRevealing: boolean;
+
+  // Actions
   setBetAmount: (amount: number) => void;
   setClientSeed: (seed: string) => void;
   setGameId: (id: string) => void;
-  startGame: () => Promise<void>;
-  revealTile: (row: number, col: number, sounds?: SoundCallbacks) => Promise<void>;
-  cashout: (playWin?: () => void) => void;
+  startGame: () => Promise<number | undefined>;
+  revealTile: (row: number, col: number, sounds?: SoundCallbacks) => Promise<"WON" | null>;
+  cashout: (playWin?: () => void) => Promise<number | undefined>;
   resetGame: () => void;
 }
 
@@ -44,13 +48,7 @@ export const useGameStore = create<GameStore>()(
     rows: defaultRows,
     cols: defaultCols,
     minesCount: defaultMines,
-    board: Array.from({ length: defaultRows }, (_, row) =>
-      Array.from({ length: defaultCols }, (_, col) => ({
-        id: `${row}-${col}`,
-        revealed: false,
-        position: { row, col }
-      }))
-    ),
+    board: createEmptyBoard(defaultRows, defaultCols),
     status: "IDLE",
     revealedCount: 0,
     betAmount: 10,
@@ -61,21 +59,23 @@ export const useGameStore = create<GameStore>()(
     nonce: 0,
     gameId: "",
 
+    isRevealing: false,
+
     setBetAmount: (amount) => set({ betAmount: amount }),
     setClientSeed: (seed) => set({ clientSeed: seed }),
     setGameId: (id) => set({ gameId: id }),
 
     startGame: async () => {
-      const { rows, cols, minesCount, clientSeed, nonce } = get();
+      const { rows, cols, minesCount, clientSeed, nonce, betAmount } = get();
 
-      const response = await fetch('/api/game/start-game', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ clientSeed, rows, cols, minesCount, nonce }),
+      const response = await fetch("/api/game/start-game", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clientSeed, rows, cols, minesCount, nonce, betAmount }),
       });
 
       if (!response.ok) {
-        console.error('Failed to start game');
+        console.error("Failed to start game");
         return;
       }
 
@@ -86,121 +86,129 @@ export const useGameStore = create<GameStore>()(
         cols: c,
         minesCount: m,
         nonce: nextNonce,
+        balance,
       } = await response.json();
 
-      const board: Tile[][] = Array.from({ length: r }, (_, row) =>
-        Array.from({ length: c }, (_, col) => ({
-          id: `${row}-${col}`,
-          revealed: false,
-          position: { row, col }
-        }))
-      );
+      const board = createEmptyBoard(r, c);
 
       set({
         board,
         gameId,
         serverSeedHash,
         nonce: nextNonce,
-        status: 'IN_PROGRESS',
+        status: "IN_PROGRESS",
         revealedCount: 0,
         finalPayout: 0,
       });
+
+      return balance;
     },
 
     revealTile: async (row, col, sounds) => {
-      const { gameId, board, status, revealedCount, minesCount, rows, cols } = get();
-      if (status !== "IN_PROGRESS") return;
+      const { gameId, board, status, revealedCount, minesCount, rows, cols, isRevealing } = get();
+      if (status !== "IN_PROGRESS" || isRevealing) return null;
 
-      const tile = board[row][col];
-      if (tile.revealed) return;
+      set({ isRevealing: true });
 
-      const response = await fetch('/api/game/reveal-tile', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ gameId, row, col }),
-      });
+      try {
+        const tile = board[row][col];
+        if (tile.revealed) return null;
 
-      if (!response.ok) {
-        console.error('Reveal tile failed');
-        return;
-      }
-
-      const { isMine } = await response.json();
-      sounds?.playClick?.();
-
-      if (isMine) {
-        const mineRevealRes = await fetch('/api/game/cashout', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ gameId, revealedCount, betAmount: 0 }),
+        const response = await fetch("/api/game/reveal-tile", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ gameId, row, col }),
         });
 
-        const { mineIndices } = await mineRevealRes.json();
-        const mineSet = new Set(mineIndices);
+        if (!response.ok) {
+          console.error("Reveal tile failed");
+          return null;
+        }
 
-        const lostBoard = board.map((r, rIdx) =>
-          r.map((t, cIdx) => {
-            const index = rIdx * cols + cIdx;
+        const { isMine } = await response.json();
+        sounds?.playClick?.();
 
-            if(rIdx === row && cIdx === col) {
+        if (isMine) {
+          const mineRevealRes = await fetch("/api/game/cashout", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ gameId, revealedCount, betAmount: 0 }),
+          });
+
+          const { mineIndices } = await mineRevealRes.json();
+          const mineSet = new Set(mineIndices);
+
+          const lostBoard = board.map((r, rIdx) =>
+            r.map((t, cIdx) => {
+              const index = rIdx * cols + cIdx;
+
+              if(rIdx === row && cIdx === col) {
+                return {
+                  ...t,
+                  revealed: true,
+                  isMine: true,
+                  clicked: true
+                }
+              }
+
               return {
                 ...t,
                 revealed: true,
                 isMine: mineSet.has(index),
-                clicked: true
-              }
-            }
+              };
+            })
+          );
 
-            return {
-              ...t,
-              revealed: true,
-              isMine: mineSet.has(index),
-            };
-          })
+          set({ board: lostBoard, status: "LOST" });
+          sounds?.playLose?.();
+          return null;
+        }
+
+        const updatedBoard = board.map((r, rIdx) =>
+          r.map((t, cIdx) =>
+            rIdx === row && cIdx === col
+              ? { ...t, revealed: true, isMine: false, clicked: true }
+              : t
+          )
         );
 
-        set({ board: lostBoard, status: 'LOST' });
-        sounds?.playLose?.();
-        return;
+        const newRevealed = revealedCount + 1;
+        const totalSafe = rows * cols - minesCount;
+        const won = newRevealed === totalSafe;
+
+        set({
+          board: updatedBoard,
+          revealedCount: newRevealed,
+          status: won ? "WON" : status,
+        });
+
+        if (won) {
+          sounds?.playWin?.();
+          return "WON";
+        }
+
+        return null;
+      } finally {
+        set({ isRevealing: false });
       }
-
-      const updatedBoard = board.map((r, rIdx) =>
-        r.map((t, cIdx) =>
-          rIdx === row && cIdx === col
-            ? { ...t, revealed: true, isMine: false, clicked: true }
-            : t
-        )
-      );
-
-      const newRevealed = revealedCount + 1;
-      const totalSafe = rows * cols - minesCount;
-      const won = newRevealed === totalSafe;
-
-      set({
-        board: updatedBoard,
-        revealedCount: newRevealed,
-        status: won ? 'WON' : status,
-      });
-
-      if (won) sounds?.playWin?.();
     },
 
     cashout: async (playWin) => {
       const { gameId, revealedCount, betAmount, board, cols } = get();
       if (!gameId) return;
 
-      const response = await fetch('/api/game/cashout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/game/cashout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ gameId, revealedCount, betAmount }),
       });
 
       if (!response.ok) {
-        console.error('Cashout failed');
+        console.error("Cashout failed");
         return;
       }
 
-      const { payout, mineIndices } = await response.json();
+      const { payout, mineIndices, balance } = await response.json();
       const mineSet = new Set(mineIndices);
 
       const revealedBoard = board.map((r, rIdx) =>
@@ -209,7 +217,7 @@ export const useGameStore = create<GameStore>()(
           return {
             ...t,
             revealed: true,
-            isMine: mineSet.has(idx)
+            isMine: mineSet.has(idx),
           };
         })
       );
@@ -217,29 +225,22 @@ export const useGameStore = create<GameStore>()(
       set({
         board: revealedBoard,
         finalPayout: payout,
-        status: 'WON'
+        status: "WON",
       });
 
       playWin?.();
+      return balance;
     },
 
     resetGame: () => {
-      const newBoard = Array.from({ length: defaultRows }, (_, row) =>
-        Array.from({ length: defaultCols }, (_, col) => ({
-          id: `${row}-${col}`,
-          revealed: false,
-          position: { row, col }
-        }))
-      );
-
       set({
-        board: newBoard,
+        board: createEmptyBoard(defaultRows, defaultCols),
         status: "IDLE",
         revealedCount: 0,
         finalPayout: 0,
         serverSeedHash: "",
-        gameId: ""
+        gameId: "",
       });
-    }
+    },
   }))
 );
